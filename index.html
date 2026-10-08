@@ -8305,6 +8305,7 @@ function CallCenter({ profile, role, displayName, speechName }) {
 
   async function sendSignal(toId, callId, kind, payload) {
     const { error } = await supabaseClient.from("call_signals").insert({ from_id: meRef.current.id, to_id: toId, call_id: callId, kind, payload: payload || {} });
+    window.__dosLastSignalError = error ? (error.message || String(error.code || "")) : "";
     return !error;
   }
   function stopRinger() { if (ringerRef.current) { ringerRef.current(); ringerRef.current = null; } dosCloseCallNotifications(); }
@@ -8598,7 +8599,7 @@ function CallCenter({ profile, role, displayName, speechName }) {
     resetCallFlags();
     setUi({ phase: "calling", peerName: call.peerName, peerId: call.peerId, direction: "out", wantVideo: call.camOn });
     const ok = await sendSignal(call.peerId, call.id, "invite", { name: meRef.current.name, role: meRef.current.role, speech: meRef.current.speech, video: call.camOn });
-    if (!ok) { finish("تعذر بدء المكالمة — تأكد من تشغيل ملف supabase_chat_voice_calls.sql"); return; }
+    if (!ok) { finish(`تعذر بدء المكالمة — شغّل ملف calls-setup.sql في Supabase${window.__dosLastSignalError ? ` (${window.__dosLastSignalError})` : ""}`); return; }
     ringerRef.current = startRinger("ringback");
     say(callOutgoingPhrase(detail.toSpeech || ""));
     timersRef.current.ring = setTimeout(() => { if (callRef.current === call && call.state === "calling") finish("لا يوجد رد", { notify: "cancel", log: "missed" }); }, 45000);
